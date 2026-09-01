@@ -11,29 +11,27 @@ if %errorLevel% == 0 (
 
 cd /d "%~dp0"
 
-echo [BUILD] Compiling game package into "Tagalog VS Bisaya"...
+echo [BUILD] Compiling into a SINGLE "Tagalog VS Bisaya.exe" launcher...
 pip install pyinstaller pygame
-pyinstaller --noconsole --icon=icon.ico --name="Tagalog VS Bisaya" main.py
 
-if not exist "dist\Tagalog VS Bisaya\Tagalog VS Bisaya.exe" (
-    echo [ERROR] PyInstaller compilation failed. Ensure main.py and icon.ico are in this directory.
+:: Compiles everything into ONE file and injects the asset maps into the binary data array
+pyinstaller -F --noconsole --icon=icon.ico --add-data "assets;assets" --add-data "music.mp3;." --add-data "scores.json;." --name="Tagalog VS Bisaya" main.py
+
+if not exist "dist\Tagalog VS Bisaya.exe" (
+    echo [ERROR] PyInstaller compilation failed!
     pause
     exit /b
 )
 
-echo [BUILD] Synchronizing game assets...
-xcopy /E /I /Y "assets" "dist\Tagalog VS Bisaya\assets"
-copy /Y "music.mp3" "dist\Tagalog VS Bisaya\"
-copy /Y "scores.json" "dist\Tagalog VS Bisaya\"
-
-echo [INSTALL] Provisioning package into Protected System Root...
+echo [INSTALL] Moving System Application into Protected Roots...
 if exist "C:\Program Files\TagalogVsBisayaGame" rmdir /s /q "C:\Program Files\TagalogVsBisayaGame"
-xcopy /E /I /Y "dist\Tagalog VS Bisaya" "C:\Program Files\TagalogVsBisayaGame"
+mkdir "C:\Program Files\TagalogVsBisayaGame"
+copy /Y "dist\Tagalog VS Bisaya.exe" "C:\Program Files\TagalogVsBisayaGame\"
 
-echo [INSTALL] Injecting executable folder into Global System Path...
+echo [INSTALL] Registering System Environment Variables...
 setx /M PATH "%PATH%;C:\Program Files\TagalogVsBisayaGame"
 
-echo [INSTALL] Registering shortcut within the Shared Start Menu...
+echo [INSTALL] Creating system-wide Start Menu Shortcut...
 set SCRIPT="%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%-%RANDOM%.vbs"
 echo Set oWS = WScript.CreateObject("WScript.Shell") >> %SCRIPT%
 echo sLinkFile = "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Tagalog VS Bisaya.lnk" >> %SCRIPT%
@@ -48,7 +46,5 @@ del %SCRIPT%
 echo ===================================================
 echo [COMPLETE] System Application Configuration Finished!
 echo ===================================================
-echo Launcher Name: Tagalog VS Bisaya.exe
-echo Check the "dist/Tagalog VS Bisaya" folder for your local package.
+echo Check your local "dist" folder for the lone "Tagalog VS Bisaya.exe" file.
 pause
-
