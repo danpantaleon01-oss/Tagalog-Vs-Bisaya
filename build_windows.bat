@@ -1,28 +1,59 @@
 @echo off
-REM Check if Python 3.13 is installed, if not, install it using winget
-py -3.13 --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [System] Python 3.13 was not found. Installing Python 3.13 automatically...
-    winget install --id Python.Python.3.13 --exact --silent --accept-source-agreements --accept-package-agreements
-    
-    REM Refresh path for the current session
-    for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Control\Session Manager\Environment" /v Path') do set "SYS_PATH=%%B"
-    for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path') do set "USER_PATH=%%B"
-    set "PATH=%SYS_PATH%;%USER_PATH%"
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo [SUCCESS] Administrative privileges confirmed. Proceeding with system installation...
+) else (
+    echo [ERROR] This installer requires Administrative privileges.
+    echo Please right-click this .bat file and select 'Run as administrator'.
+    pause
+    exit /b
 )
 
-REM Uses Python 3.13 because pygame has no prebuilt wheel for 3.14 yet.
-py -3.13 -m pip install -r requirements.txt
-py -3.13 -m pip install pyinstaller
+echo [BUILD] Compiling main.py into a clean standalone package...
+pip install pyinstaller pygame
+pyinstaller --noconsole --icon=icon.ico main.py
 
-REM Clean up old build artifacts to ensure a fresh build
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
-if exist "Tagalog VS Bisaya.spec" del /f /q "Tagalog VS Bisaya.spec"
-if exist SnakeGame.spec del /f /q SnakeGame.spec
+if not exist "dist\main\main.exe" (
+    echo [ERROR] PyInstaller compilation failed. Ensure main.py and icon.ico are in this directory.
+    pause
+    exit /b
+)
 
-py -3.13 -m PyInstaller --noconfirm --onefile --windowed --icon=icon.ico --add-data "assets;assets" --name "Tagalog VS Bisaya" main.py
-echo.
-echo Build complete. Your EXE is in the dist folder:
-echo dist\"Tagalog VS Bisaya.exe"
+echo [BUILD] Structuring game files...
+if exist "dist\TagalogVsBisayaGame" rmdir /s /q "dist\TagalogVsBisayaGame"
+rename "dist\main" "TagalogVsBisayaGame"
+
+xcopy /E /I /Y "assets" "dist\TagalogVsBisayaGame\assets"
+copy /Y "music.mp3" "dist\TagalogVsBisayaGame\"
+copy /Y "scores.json" "dist\TagalogVsBisayaGame\"
+
+echo [INSTALL] Moving package into Protected System Root...
+if exist "C:\Program Files\TagalogVsBisayaGame" rmdir /s /q "C:\Program Files\TagalogVsBisayaGame"
+xcopy /E /I /Y "dist\TagalogVsBisayaGame" "C:\Program Files\TagalogVsBisayaGame"
+
+echo [INSTALL] Injecting executable folder into Global System Path...
+setx /M PATH "%PATH%;C:\Program Files\TagalogVsBisayaGame"
+
+echo [INSTALL] Registering shortcut within the Shared Start Menu...
+set SCRIPT="%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%-%RANDOM%.vbs"
+echo Set oWS = WScript.CreateObject("WScript.Shell") >> %SCRIPT%
+echo sLinkFile = "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Tagalog VS Bisaya.lnk" >> %SCRIPT%
+echo Set oLink = oWS.CreateShortcut(sLinkFile) >> %SCRIPT%
+echo oLink.TargetPath = "C:\Program Files\TagalogVsBisayaGame\main.exe" >> %SCRIPT%
+echo oLink.WorkingDirectory = "C:\Program Files\TagalogVsBisayaGame" >> %SCRIPT%
+echo oLink.IconLocation = "C:\Program Files\TagalogVsBisayaGame\main.exe, 0" >> %SCRIPT%
+echo oLink.Save >> %SCRIPT%
+cscript /nologo %SCRIPT%
+del %SCRIPT%
+
+echo [CLEANUP] Purging temporary build clutter...
+rmdir /s /q "build"
+rmdir /s /q "dist"
+del /q "main.spec"
+
+echo ===================================================
+echo [COMPLETE] System Application Configuration Finished!
+echo ===================================================
+echo You can now open 'Run' (Win+R) and launch the game directly using: main
+echo The game is also pinned system-wide across all user Start Menus.
 pause
