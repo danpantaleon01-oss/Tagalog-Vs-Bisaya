@@ -9,6 +9,8 @@ if %errorLevel% == 0 (
     exit /b
 )
 
+cd /d "%~dp0"
+
 echo [BUILD] Compiling main.py into a clean standalone package...
 pip install pyinstaller pygame
 pyinstaller --noconsole --icon=icon.ico main.py
