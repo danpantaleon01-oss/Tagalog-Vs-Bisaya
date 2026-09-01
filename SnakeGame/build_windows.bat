@@ -48,11 +48,6 @@ echo oLink.Save >> %SCRIPT%
 cscript /nologo %SCRIPT%
 del %SCRIPT%
 
-echo [CLEANUP] Purging temporary build clutter...
-rmdir /s /q "build"
-rmdir /s /q "dist"
-del /q "main.spec"
-
 echo ===================================================
 echo [COMPLETE] System Application Configuration Finished!
 echo ===================================================
