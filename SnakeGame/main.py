@@ -13,13 +13,26 @@ CELL = 20
 FPS = 12
 SCORES_FILE = Path("scores.json")
 
+import os
+import sys
+
 def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
-    except AttributeError:
+    except Exception:
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+# ─── UPDATE YOUR PATHS USING THE FUNCTION ABOVE ───
+# Example for your music and asset folders:
+music_file = resource_path("music.mp3")
+scores_file = resource_path("scores.json")
+# If loading an image inside assets:
+icon_file = resource_path(os.path.join("assets", "icon.png"))
+
 
 SOUNDS_DIR = Path(resource_path("assets/audio"))
 
